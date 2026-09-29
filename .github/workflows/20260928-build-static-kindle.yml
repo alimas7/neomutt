@@ -85,16 +85,25 @@ jobs:
                     --without-ada \
                     --without-tests \
                     --without-debug \
-                    --enable-widec
+                    --enable-widec \
+                    --enable-pc-files \
+                    --with-termlib=tinfo
         make -j$(nproc)
         make install.libs
 
+        # CRUCIAL LINKING FIX: Create unified links so NeoMutt maps standard names
+        cd ${{ github.workspace }}/dist/lib
+        ln -s libncursesw.a libncurses.a
+        ln -s libtinfow.a libtinfo.a
+
     - name: Cross-Compile Standalone NeoMutt Binary
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw -I${{ github.workspace }}/dist/include/ncurses"
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
+        LIBS: "-lncursesw -ltinfow"
       run: |
-        # Pass compiler configurations inline ahead of configure to align with autosetup parsing layout
-        CC=arm-linux-gnueabi-gcc \
-        CFLAGS="-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7 -I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw" \
-        LDFLAGS="-static -L${{ github.workspace }}/dist/lib -Wl,--abi-version=2.6.31" \
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
@@ -107,8 +116,7 @@ jobs:
                     --disable-lmdb \
                     --disable-gdbm
         
-        # Enforce static compilation metrics back inside the generated Makefile template
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--abi-version=2.6.31 /' Makefile
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make -j$(nproc)
         arm-linux-gnueabi-strip neomutt
 
