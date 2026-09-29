@@ -14,8 +14,12 @@ jobs:
     - name: Install Toolchain and Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi \
-                               make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
+        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
+        
+        # Download and extract the official pre-compiled arm-linux-musleabi cross-toolchain
+        mkdir -p ${{ github.workspace }}/toolchain
+        curl -Lo musl-cross.tar.xz "https://musl.cc"
+        tar -xf musl-cross.tar.xz --strip-components=1 -C ${{ github.workspace }}/toolchain
 
     - name: Download Explicit Dependency Tarballs
       run: |
@@ -43,9 +47,8 @@ jobs:
 
     - name: Build Static ZLib
       env:
-        CC: arm-linux-gnueabi-gcc
-        # FIXED: Removed the invalid kernel string and utilized traditional hash markers to ensure ld parses cleanly
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--hash-style=both"
+        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
       run: |
         cd zlib-1.3.1
         ./configure --prefix=${{ github.workspace }}/dist --static
@@ -54,20 +57,20 @@ jobs:
 
     - name: Build Static LibIconv
       env:
-        CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--hash-style=both"
-        LDFLAGS: "-static -Wl,--hash-style=both"
+        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd libiconv-1.17
-        ./configure --host=arm-linux-gnueabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
+        ./configure --host=arm-linux-musleabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
         make -j$(nproc)
         make install
 
     - name: Build Static OpenSSL
       env:
-        CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--hash-style=both"
-        LDFLAGS: "-static -Wl,--hash-style=both"
+        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd openssl-1.1.1w
         ./Configure linux-generic32 -static --prefix=${{ github.workspace }}/dist --openssldir=${{ github.workspace }}/dist/ssl no-shared no-async no-engine no-tests
@@ -76,12 +79,12 @@ jobs:
 
     - name: Build Static NCurses
       env:
-        CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--hash-style=both"
-        LDFLAGS: "-static -Wl,--hash-style=both"
+        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd ncurses-6.4
-        ./configure --host=arm-linux-gnueabi \
+        ./configure --host=arm-linux-musleabi \
                     --prefix=${{ github.workspace }}/dist \
                     --with-shared=no \
                     --with-normal=yes \
@@ -100,10 +103,10 @@ jobs:
 
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
-        CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--hash-style=both"
+        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw -I${{ github.workspace }}/dist/include/ncurses"
-        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--hash-style=both"
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
         cat << 'EOF' > config.site
         define neomutt_cv_ncursesw_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
@@ -124,17 +127,9 @@ jobs:
                     --disable-lmdb \
                     --disable-gdbm
         
-        # Enforce static linkage markers
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--hash-style=both /' Makefile
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make -j$(nproc)
-        
-        # STAMP ABI COMPATIBILITY FOR 2.6.x IN NATIVE ELF HEADERS
-        # Overwrites the glibc NT_GNU_ABI_TAG section inside the binary file to target 2.0.0 entry hooks
-        if [ -f neomutt ]; then
-          printf '\x02\x00\x00\x00' | dd of=neomutt bs=1 seek=$(note_offset=$(readelf -S neomutt | grep .note.ABI-tag | awk '{print $5}') ; echo $((0x$note_offset + 32))) conv=notrunc 2>/dev/null || true
-        fi
-        
-        arm-linux-gnueabi-strip neomutt
+        ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-strip neomutt
 
     - name: Structure and Assemble Kindle Release Package
       run: |
@@ -145,9 +140,9 @@ jobs:
         cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
         cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
         
-        cp kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
-        cp kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
-        cp kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
+        cp .github/kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
+        cp .github/kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
+        cp .github/kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
         
         cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
         {
