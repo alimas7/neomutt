@@ -1,59 +1,107 @@
-name: Build and Package Static NeoMutt for Kindle KPW1
-
+name: Build and Package Static NeoMutt for Kindle JPW1
 on:
-  workflow_dispatch: # Manual activation via the Actions interface tab
-
+  workflow_dispatch:
 jobs:
   build-armv7-static:
     runs-on: ubuntu-22.04
-
     steps:
     - name: Checkout Code Base
       uses: actions/checkout@v4
-
-    - name: Execute Shielded Toolchain and Dependency Download
+    - name: Install Toolchain and Build Dependencies
       run: |
-        # Installs cross-compilers and fetches source archives via direct URL pointers hidden inside base64
-        echo "c3VkbyBhcHQtZ2V0IHVwZGF0ZQpzdWRvIGFwdC1nZXQgaW5zdGFsbCAteSBnY2MtYXJtLWxpbnV4LWdudWVhYmkgZysrLWFybS1saW51eC1nbnVlYWJpIG1ha2UgY3VybCBkb2Nib29rLXhzbCB4c2x0cHJvYyBnZXR0ZXh0IHRjbCBiemlwMiBuY3Vyc2VzLWJpbgpjdXJsIC1MbyB6bGliLTEuMy4xLnRhci5neiBodHRwczovL3psaWIubmV0L2Zvc3NpbHMvemxpYi0xLjMuMS50YXIuZ3oKY3VybCAtTG8gbGliaWNvbnYtMS4xNy50YXIuZ3ogaHR0cHM6Ly9mdHAuZ251Lm9yZy9wdWIvZ251L2xpYmljb252L2xpYmljb252LTEuMTcudGFyLmd6CmN1cmwgLUxvIG9wZW5zc2wtMS4xLjF3LnRhci5neiBodHRwczovL3d3dy5vcGVuc3NsLm9yZy9zb3VyY2Uvb3BlbnNzbC0xLjEuMXcudGFyLmd6CmN1cmwgLUxvIG5jdXJzZXMtNi40LnRhci5neiBodHRwczovL2Z0cC5nbnUub3JnL3B1Yi9nbnUvbmN1cnNlcy9uY3Vyc2VzLTYuNC50YXIuZ3o=" | base64 -d | bash
-
-    - name: Execute Shielded Static Core Dependency Compilation
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi make curl docbook-tsl xsltproc gettext tcl bzip2 ncurses-bin
+    - name: Download Explicit Dependency Tarballs
       run: |
-        # Compiles zlib, libiconv, openssl, and ncurses sequentially using absolute workspace macros
-        echo "bWtkaXIgLXAgIiR7R0lUSFVCX1dPUktTUEFDRX0vZGlzdCIKdGFyIC14emYgemxpYi0xLjMuMS50YXIuZ3oKdGFyIC14emYgbGliaWNvbnYtMS4xNy50YXIuZ3oKdGFyIC14emYgb3BlbnNzbC0xLjEuMXcudGFyLmd6CnRhciAteHpmIG5jdXJzZXMtNi40LnRhci5negpjZCB6bGliLTEuMy4xICYmIENDPWFybS1saW51eC1nbnVlYWJpLWdjYyBDRkxBR1M9Ii1zdGF0aWMgLW1hcmNoPWFybXY3LWEgLW10dW5lPWNvcnRleC1hOCAtTzIiIC4vY29uZmlndXJlIC0tcHJlZml4PSIke0dJVEhVQl9XT1JLU1BBQ0V9L2Rpc3QiIC0tc3RhdGljICYmIG1ha2UgLWoic3Rhc2giICYmIG1ha2UgaW5zdGFsbApjZCAuLi9saWJpY29udi0xLjE3ICYmIENDPWFybS1saW51eC1nbnVlYWJpLWdjYyBDRkxBR1M9Ii1zdGF0aWMgLW1hcmNoPWFybXY3LWEgLW10dW5lPWNvcnRleC1hOCAtTzIiIExERkxBR1M9Ii1zdGF0aWMiIC4vY29uZmlndXJlIC0taG9zdD1hcm0tbGludXgtZ251ZWFiaSAtLXByZWZpeD0iJHtHSVRIVUJfV09SS1NQQUNFfS9kaXN0IiAtLWVuYWJsZS1zdGF0aWMgLS1kaXNhYmxlLXNoYXJlZCAmJiBtYWtlIC1qInN0YXNoIiAmJiBtYWtlIGluc3RhbGwKY2QgLi4vb3BlbnNzbC0xLjEuMXcgJiYgQ0M9YXJtLWxpbnV4LWdudWVhYmktZ2NjIENGTEFHUz0iLXN0YXRpYyAtbWFyY2g9YXJtdjctYSAtbXR1bmU9Y29ydGV4LWE4IC1PMiIgTERGTEFHUz0iLXN0YXRpYyIgLi9Db25maWd1cmUgbGludXgtZ25lcmljMzIgLXN0YXRpYyAtLXByZWZpeD0iJHtHSVRIVUJfV09SS1NQQUNFfS9kaXN0IiAtLW9wZW5zc2xkaXI9IiR7R0lUSFVCX1dPUktTUEFDRX0vZGlzdC9zc2wiIG5vLXNoYXJlZCBuby1hc3luYyBuby1lbmdpbmUgbm8tdGVzdHMgJiYgbWFrZSAtaiJzdGFzaCIgJiYgbWFrZSBpbnN0YWxsX3N3CmNkIC4uL25jdXJzZXMtNi40ICYmIENDPWFybS1saW51eC1nbnVlYWJpLWdjYyBDRkxBR1M9Ii1zdGF0aWMgLW1hcmNoPWFybXY3LWEgLW10dW5lPWNvcnRleC1hOCAtTzIiIExERkxBR1M9Ii1zdGF0aWMiIC4vY29uZmlndXJlIC0taG9zdD1hcm0tbGludXgtZ251ZWFiaSAtLXByZWZpeD0iJHtHSVRIVUJfV09SS1NQQUNFfS9kaXN0IiAtLXdpdGgtc2hhcmVkPW5vIC0td2l0aC1ub3JtYWw9eWVzIC0tZW5hYmxlLXN0YXRpYyAtLXdpdGhvdXQtYWRhIC0td2l0aG91dC10ZXN0cyAtLXdpdGhvdXQtZGVidWcgLS1lbmFibGUtd2lkZWMgJiYgbWFrZSAtaiJzdGFzaCIgJiYgbWFrZSBpbnN0YWxs" | sed 's/"stash"/$(nproc)/g' | base64 -d | bash
-
-    - name: Execute Shielded Source Cross-Compilation
+        curl -Lo zlib-1.3.1.tar.gz https://zlib.net/fossils/zlib-1.3.1.tar.gz
+        curl -Lo libiconv-1.17.tar.gz https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
+        curl -Lo openssl-1.1.1w.tar.gz https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+        curl -Lo ncurses-6.4.tar.gz https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz
+    - name: Extract Dependency Source Tree
       run: |
-        # Configures and links NeoMutt with static library injection flags
-        echo "Li9jb25maWd1cmUgLS1wcmVmaXg9IiR7R0lUSFVCX1dPUktTUEFDRX0vZGlzdCIgLS1kaXNhYmxlLW5scyAtLWRpc2FibGUtZG9jIC0tc3NsIC0td2l0aC1zc2w9IiR7R0lUSFVCX1dPUktTUEFDRX0vZGlzdCIgLS13aXRoLWN1cnNlcz0iJHtHSVRIVUJfV09SS1NQQUNFfS9kaXN0IiAtLXdpdGgtdWk9bmN1cnNlcyAtLWRpc2FibGUtaWRuMiAtLWRpc2FibGUtbm90bXVjaCAtLWRpc2FibGUtc3FsaXRlIC0tZGlzYWJsZS1sbWRiIC0tZGlzYWJsZS1nZGJtIENDPWFybS1saW51eC1nbnVlYWJpLWdjYyBDRkxBR1M9Ii1zdGF0aWMgLW1hcmNoPWFybXY3LWEgLW10dW5lPWNvcnRleC1hOCAtTzIiIExERkxBR1M9Ii1zdGF0aWMiCnNlZCAtaSAncy9eTERGTEFHUyA9IC9MREZMQUdTID0gLXN0YXRpYyAvJyBNYWtlZmlsZQptYWtlIC1qJChucHJvYyk=" | base64 -d | bash
-
+        mkdir -p "${GITHUB_WORKSPACE}/dist"
+        tar -xzf zlib-1.3.1.tar.gz
+        tar -xzf libiconv-1.17.tar.gz
+       tar -xzf openssl-1.1.1w.tar.gz
+        tar -xzf ncurses-6.4.tar.gz
+    - name: Build Static Zlib
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+      run: |
+        cd zlib-1.3.1
+        ./configure --prefix=${GITHUB_WORKSPACE}/dist --static
+        make -j$(nproc)
+        make install
+    - name: Build Static LibIconv
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LHDFLAGS: "-static"
+      run: |
+        cd libiconv-1.17
+        ./configure --host=arm-linux-gnueabi --prefix=${GITHUB_WORKSPACE}/dist --enable-static --disable-shared
+        make -j$(nproc)
+        make install
+    - name: Build Static OpenSSL
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LHDFLAGS: "-static"
+      run: |
+        cd openssl-1.1.1w
+        ./Configure linux-gneric32 -static --prefix=${GITHUB_WORKSPACE}/dist --openssldir=${GITHUB_WORKSPACE}/dist/ssl no-shared no-async no-engine no-tests
+        make -j$(nproc)
+        make install_sw
+    - name: Build Static NCurses
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
+      run: |
+        cd ncurses-6.4
+        ./configure --host=arm-linux-gnueabi --prefix=${GITHUB_WORKSPACE}/dist --with-shared=no --with-normal=yes --enable-static --without-ada --without-tests --without-debug --enable-widec
+        make -j$(nproc)
+        make install
+    - name: Cross-Compile Standalone NeoMutt Binary
+      env:
+        CC: arm-linux-gnueabi-gcc
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+       LDFLAGS: "-static"
+      run: |
+        ./configure --prefix=${GITHUB_WORKSPACE}/dist \
+                    --disable-nls --disable-doc \
+                    --ssl --with-ssl=${GITHUB_WORKSPACE}/dist \
+                    --with-curses=${GITHUB_WORKSPACE}/dist \
+                    --with-ui=ncurses \
+                    --disable-idn2 --disable-notmuch --disable-sqlite \
+                    --disable-lmdb --disable-gdbm
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
+        make -j$(nproc)
     - name: Structure and Assemble Kindle Release Package
       run: |
-        mkdir -p ${{ github.workspace }}/kindle_output/bin
-        mkdir -p ${{ github.workspace }}/kindle_output/terminfo/x
-        mkdir -p ${{ github.workspace }}/kindle_output/extensions/alpine_mail
-        
-        cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
-        cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
-        
-        cp kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
-        cp kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
-        cp kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
-        
-        cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
+        mkdir -p ${GITHUB_WORKSPACE}/kindle_output/bin
+        mkdir -p ${GITHUB_WORKSPACE}/kindle_output/terminfo/x
+        mkdir -p ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail
+        cp neomutt ${GITHUB_WORKSPACE}/kindle_output/bin/neoMutt
+        cp /lib/terminfo/x/xterm ${GITHUB_WORKSPACE}/kindle_output/terminfo/x/xterm
+        cp kindle_assets/.muttrc ${GITHUB_WORKSPACE}/kindle_output/.muttrc
+        cp kindle_assets/run_mail.sh ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/run_mail.sh
+        cp kindle_assets/config.xml ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/config.xml
+        cat << 'EOF' > %{GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/menu.json
         {
-        	"items": [
-        		{
-        			"name": "Launch NeoMutt (Dark)",
-        			"priority": 1,
-        			"action": "/mnt/us/extensions/alpine_mail/run_mail.sh",
-        			"output": false
-        		}
-        	]
+          "items": [
+            {
+              "name": "Launch NeoMutt (Dark)",
+              "priority": 1,
+              "action": "/mnt/us/extensions/alpine_mail/run_mail.sh",
+              "output": false
+            }
+          ]
         }
         EOF
-
     - name: Upload Complete Kindle Build Bundle
       uses: actions/upload-artifact@v4
       with:
         name: neomutt-kpw1-bundle
-        path: ${{ github.workspace }}/kindle_output/
+        path: ${GITHUB_WORKSPACE}/kindle_output/
