@@ -109,6 +109,9 @@ jobs:
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make -j$(nproc)
 
+        # CRUCIAL ADDITION: Strip symbols using the ARM toolchain strip utility
+        arm-linux-gnueabi-strip neomutt
+
     - name: Structure and Assemble Kindle Release Package
       run: |
         mkdir -p ${{ github.workspace }}/kindle_output/bin
