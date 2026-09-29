@@ -1,12 +1,6 @@
 name: Build and Test (FreeBSD)
 
 on:
-  pull_request:
-  push:
-    branches:
-      - 'main'
-      - 'devel/**'
-      - 'copilot/**'
   workflow_dispatch:
 
 concurrency:

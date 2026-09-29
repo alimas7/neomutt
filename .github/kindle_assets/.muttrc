@@ -1,0 +1,49 @@
+set status_on_top = yes
+set menu_scroll = yes
+unset markers
+set mail_check = 300
+
+account-hook . "unset imap_user; unset imap_pass; unset smtp_url"
+
+account-hook "imaps://://gmail.com" " \
+    set imap_user = 'your_username@gmail.com' \
+    set imap_pass = 'your_16_digit_gmail_app_password' \
+    set smtp_url = 'smtps://your_username@gmail.com:your_16_digit_gmail_app_password@://gmail.com'"
+
+account-hook "imaps://://office365.com" " \
+    set imap_user = 'your_username@outlook.com' \
+    set imap_pass = 'your_outlook_app_password' \
+    set smtp_url = 'smtp://your_username@outlook.com:your_outlook_app_password@://office365.com'"
+
+account-hook "imaps://://yahoo.com" " \
+    set imap_user = 'your_username@yahoo.com' \
+    set imap_pass = 'your_yahoo_app_password' \
+    set smtp_url = 'smtps://your_username@yahoo.com:your_yahoo_app_password@://yahoo.com'"
+
+account-hook "imaps://://gmx.com" " \
+    set imap_user = 'your_username@gmx.com' \
+    set imap_pass = 'your_gmx_normal_or_app_password' \
+    set smtp_url = 'smtp://your_username@gmx.com:your_gmx_normal_or_app_password@://gmx.com'"
+
+macro index,pager <F2> "<change-folder>imaps://://gmail.comINBOX<enter>"   "Switch to Gmail"
+macro index,pager <F3> "<change-folder>imaps://://office365.comINBOX<enter>" "Switch to Outlook"
+macro index,pager <F4> "<change-folder>imaps://://yahoo.comINBOX<enter>" "Switch to Yahoo"
+macro index,pager <F5> "<change-folder>imaps://://gmx.comINBOX<enter>"     "Switch to GMX"
+
+color clear
+color normal       white           black
+color error        white           black
+color message      white           black
+color prompt       white           black
+color search       black           white
+color index        white           black       .*
+color tree         white           black
+color indicator    black           white
+color status       black           white
+color hdrdefault   white           black
+color header       white           black       "^(From|Subject|Date):"
+color body         white           black       .*
+color signature    white           black
+color attachment   black           white
+color sidebar_divider white        black
+color sidebar_new     white        black

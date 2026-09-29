@@ -1,10 +1,7 @@
 name: Coveralls
 
 on:
-  schedule:
-    - cron: '20 3 * * 1'
-      # Mondays at 03:20
-  workflow_dispatch:
+ workflow_dispatch:
 
 jobs:
   build:

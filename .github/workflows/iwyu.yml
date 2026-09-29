@@ -1,14 +1,7 @@
 name: IWYU
 
 on:
-  pull_request:
-    paths:
-      - '**/*.c'
-      - '**/*.h'
-  push:
-    branches:
-      - 'main'
-  workflow_dispatch:
+   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

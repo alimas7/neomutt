@@ -2,9 +2,6 @@
 name: Unused Functions
 
 on:
-  schedule:
-    - cron: '0 4 * * 1'
-      # Mondays at 04:00
   workflow_dispatch:
 
 jobs:

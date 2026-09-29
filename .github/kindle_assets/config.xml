@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension>
+	<id>alpine_mail</id>
+	<label>NeoMutt Mail Client</label>
+	<version>1.0</version>
+	<author>FOSS Community</author>
+	<description>Native Dark Mode Mail via KTerm</description>
+</extension>

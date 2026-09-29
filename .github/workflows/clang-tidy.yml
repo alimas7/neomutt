@@ -1,9 +1,6 @@
 name: clang-tidy
 
 on:
-  schedule:
-    - cron: '10 4 * * 1'
-      # Mondays at 04:10
   workflow_dispatch:
 
 concurrency:

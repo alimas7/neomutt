@@ -1,10 +1,7 @@
 name: Debian
 
 on:
-  schedule:
-    - cron: '40 3 * * 1'
-      # Mondays at 03:40
-  workflow_dispatch:
+ workflow_dispatch:
 
 jobs:
   build:
