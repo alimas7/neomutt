@@ -90,13 +90,10 @@ jobs:
         make install.libs
 
     - name: Cross-Compile Standalone NeoMutt Binary
-      env:
-        CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7 -I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
-        # Pure cross-linker fallback strategy matching native 2.6.31 kernel hooks cleanly
-        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--abi-version=2.6.31"
       run: |
+        # Explicit target configuration mapping compiler and direct directory flags as script arguments
         ./configure --prefix=${{ github.workspace }}/dist \
+                    --cc=arm-linux-gnueabi-gcc \
                     --disable-nls \
                     --disable-doc \
                     --ssl \
@@ -106,9 +103,11 @@ jobs:
                     --disable-notmuch \
                     --disable-sqlite \
                     --disable-lmdb \
-                    --disable-gdbm
+                    --disable-gdbm \
+                    --cflags="-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7 -I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw" \
+                    --ldflags="-static -L${{ github.workspace }}/dist/lib -Wl,--abi-version=2.6.31"
         
-        # Override Makefile generation templates to ensure strict kernel constraints link properly
+        # Enforce legacy ABI compatibility version flags directly into the final linking commands
         sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--abi-version=2.6.31 /' Makefile
         make -j$(nproc)
         arm-linux-gnueabi-strip neomutt
