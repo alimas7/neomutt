@@ -14,7 +14,7 @@ jobs:
     - name: Install Toolchain and Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin Xz-utils
+        sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
         
         # FIXED: Pulled from an exceptionally stable GitHub mirror architecture to guarantee zero port 443 timeouts
         mkdir -p ${{ github.workspace }}/toolchain
