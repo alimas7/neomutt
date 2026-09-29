@@ -94,7 +94,6 @@ jobs:
         # CRUCIAL LINKING FIX: Create unified links so NeoMutt maps standard names
         cd ${{ github.workspace }}/dist/lib
         ln -s libncursesw.a libncurses.a
-        ln -s libtinfow.a libtinfo.a
 
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
