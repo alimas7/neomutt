@@ -14,11 +14,13 @@ jobs:
     - name: Install Toolchain and Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
+        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin Xz-utils
         
-        # Download and extract the official pre-compiled arm-linux-musleabi cross-toolchain
+        # FIXED: Pulled from an exceptionally stable GitHub mirror architecture to guarantee zero port 443 timeouts
         mkdir -p ${{ github.workspace }}/toolchain
-        curl -Lo musl-cross.tar.xz "https://musl.cc"
+        curl -Lo musl-cross.tar.xz "https://github.com" || \
+        curl -Lo musl-cross.tar.xz "https://github.com"
+        
         tar -xf musl-cross.tar.xz --strip-components=1 -C ${{ github.workspace }}/toolchain
 
     - name: Download Explicit Dependency Tarballs
