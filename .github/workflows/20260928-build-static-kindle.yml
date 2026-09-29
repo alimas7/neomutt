@@ -83,7 +83,7 @@ jobs:
         cd ncurses-6.4
         ./configure --host=arm-linux-gnueabi --prefix=${{ github.workspace }}/dist --with-shared=no --with-normal=yes --enable-static --without-ada --without-tests --without-debug --enable-widec
         make -j$(nproc)
-        make install
+        make install.libs
 
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
