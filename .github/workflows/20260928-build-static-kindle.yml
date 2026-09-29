@@ -88,10 +88,11 @@ jobs:
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        # Direct the compiler to look in your custom target workspace directories
+        # Force the compiler to target the Kindle's specific 2.6.x kernel system calls
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
-        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
+        # CRUCIAL LINKER FIX: Bypasses the 3.2.0 kernel requirement down to the Kindle's 2.6.31 kernel
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--id-eded-minimum-kernel=2.6.31"
       run: |
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
@@ -105,11 +106,8 @@ jobs:
                     --disable-lmdb \
                     --disable-gdbm
         
-        # Enforce static building metrics into the generated Makefile
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--id-eded-minimum-kernel=2.6.31 /' Makefile
         make -j$(nproc)
-
-        # CRUCIAL ADDITION: Strip symbols using the ARM toolchain strip utility
         arm-linux-gnueabi-strip neomutt
 
     - name: Structure and Assemble Kindle Release Package
