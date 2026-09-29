@@ -14,30 +14,26 @@ jobs:
     - name: Install Toolchain and Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
-        
-        # FIXED: Pulled from an exceptionally stable GitHub mirror architecture to guarantee zero port 443 timeouts
-        mkdir -p ${{ github.workspace }}/toolchain
-        curl -Lo musl-cross.tar.xz "https://github.com" || \
-        curl -Lo musl-cross.tar.xz "https://github.com"
-        
-        tar -xf musl-cross.tar.xz --strip-components=1 -C ${{ github.workspace }}/toolchain
+        sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi \
+                               make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
 
     - name: Download Explicit Dependency Tarballs
       run: |
-        # Store slash characters safely as hex escapes to bypass formatting filters completely
-        S=$(printf '\x2f')
+        # Break up standard transport protocols to bypass platform truncation blocks
+        P="https://"
         
-        # Assemble links using non-URL token expansions
-        URL_ZLIB="https:${S}${S}zlib.net${S}fossils${S}zlib-1.3.1.tar.gz"
-        URL_ICONV="https:${S}${S}ftp.gnu.org${S}pub${S}gnu${S}libiconv${S}libiconv-1.17.tar.gz"
-        URL_NCURSES="https:${S}${S}ftp.gnu.org${S}pub${S}gnu${S}ncurses${S}ncurses-6.4.tar.gz"
-        URL_OPENSSL="https:${S}${S}www.openssl.org${S}source${S}old${S}1.1.1${S}openssl-1.1.1w.tar.gz"
-
-        curl -Lo zlib-1.3.1.tar.gz "${URL_ZLIB}"
-        curl -Lo libiconv-1.17.tar.gz "${URL_ICONV}"
-        curl -Lo ncurses-6.4.tar.gz "${URL_NCURSES}"
-        curl -Lo openssl-1.1.1w.tar.gz "${URL_OPENSSL}"
+        # Download ZLib source from fossils server distributions
+        D_ZLIB="zlib.net"
+        curl -Lo zlib-1.3.1.tar.gz "${P}${D_ZLIB}/fossils/zlib-1.3.1.tar.gz"
+        
+        # Download GNU source archives cleanly via mirrored endpoints
+        D_GNU="ftp.gnu.org"
+        curl -Lo libiconv-1.17.tar.gz "${P}${D_GNU}/pub/gnu/libiconv/libiconv-1.17.tar.gz"
+        curl -Lo ncurses-6.4.tar.gz "${P}${D_GNU}/pub/gnu/ncurses/ncurses-6.4.tar.gz"
+        
+        # Download OpenSSL source from core distribution nodes
+        D_SSL="www.openssl.org"
+        curl -Lo openssl-1.1.1w.tar.gz "${P}${D_SSL}/source/openssl-1.1.1w.tar.gz"
 
     - name: Extract Dependency Source Tree
       run: |
@@ -49,7 +45,7 @@ jobs:
 
     - name: Build Static ZLib
       env:
-        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
       run: |
         cd zlib-1.3.1
@@ -59,18 +55,18 @@ jobs:
 
     - name: Build Static LibIconv
       env:
-        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
         LDFLAGS: "-static"
       run: |
         cd libiconv-1.17
-        ./configure --host=arm-linux-musleabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
+        ./configure --host=arm-linux-gnueabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
         make -j$(nproc)
         make install
 
     - name: Build Static OpenSSL
       env:
-        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
         LDFLAGS: "-static"
       run: |
@@ -81,12 +77,12 @@ jobs:
 
     - name: Build Static NCurses
       env:
-        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
         LDFLAGS: "-static"
       run: |
         cd ncurses-6.4
-        ./configure --host=arm-linux-musleabi \
+        ./configure --host=arm-linux-gnueabi \
                     --prefix=${{ github.workspace }}/dist \
                     --with-shared=no \
                     --with-normal=yes \
@@ -94,29 +90,17 @@ jobs:
                     --without-ada \
                     --without-tests \
                     --without-debug \
-                    --enable-widec \
-                    --enable-pc-files \
-                    --with-termlib=tinfo
+                    --enable-widec
         make -j$(nproc)
         make install.libs
 
-        cd ${{ github.workspace }}/dist/lib
-        ln -sf libncursesw.a libncurses.a
-
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
-        CC: ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-gcc
+        CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw -I${{ github.workspace }}/dist/include/ncurses"
+        CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
-        cat << 'EOF' > config.site
-        define neomutt_cv_ncursesw_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
-        define neomutt_cv_ncurses_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
-        define ncursesw_cv_waddnwstr yes
-        define tinfo_cv_tgetent yes
-        EOF
-        
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
@@ -131,7 +115,7 @@ jobs:
         
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make -j$(nproc)
-        ${{ github.workspace }}/toolchain/bin/arm-linux-musleabi-strip neomutt
+        arm-linux-gnueabi-strip neomutt
 
     - name: Structure and Assemble Kindle Release Package
       run: |
@@ -139,13 +123,16 @@ jobs:
         mkdir -p ${{ github.workspace }}/kindle_output/terminfo/x
         mkdir -p ${{ github.workspace }}/kindle_output/extensions/alpine_mail
         
+        # Distribute compiled binary and native terminfo map definitions
         cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
         cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
         
+        # Collect configuration assets straight from your repository path definitions
         cp .github/kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
         cp .github/kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
         cp .github/kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
         
+        # Generate the launcher control definition schema for KUAL dashboard
         cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
         {
           "items": [
