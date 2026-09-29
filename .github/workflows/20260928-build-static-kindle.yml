@@ -95,7 +95,7 @@ jobs:
         make -j$(nproc)
         make install.libs
 
-        # Standardizes library tracking links cleanly inside workspace disk layers
+        # Set up standard library maps
         cd ${{ github.workspace }}/dist/lib
         ln -sf libncursesw.a libncurses.a
 
@@ -105,9 +105,16 @@ jobs:
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw -I${{ github.workspace }}/dist/include/ncurses"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
-        # CRUCIAL MULTI-DEPENDENCY STATIC LINK ORDER FIX: Explicitly supply iconv to validate testing binaries
-        LIBS: "-lncursesw -ltinfow -liconv"
       run: |
+        # CRUCIAL CONFIGURATION INJECTION: Override configure probes with explicit linking parameters
+        cat << 'EOF' > config.site
+        define neomutt_cv_ncursesw_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
+        define neomutt_cv_ncurses_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
+        define ncursesw_cv_waddnwstr yes
+        define tinfo_cv_tgetent yes
+        EOF
+        
+        # Pass the config cache layout straight to configure
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
