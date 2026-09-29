@@ -45,7 +45,8 @@ jobs:
     - name: Build Static ZLib
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        # CRUCIAL EMBEDDED KERNEL FIX: Force linker to stamp backward compatibility markers down to 2.6.16
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
       run: |
         cd zlib-1.3.1
         ./configure --prefix=${{ github.workspace }}/dist --static
@@ -55,8 +56,8 @@ jobs:
     - name: Build Static LibIconv
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LDFLAGS: "-static"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
+        LDFLAGS: "-static -Wl,--min-kernel=2.6.16"
       run: |
         cd libiconv-1.17
         ./configure --host=arm-linux-gnueabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
@@ -66,10 +67,11 @@ jobs:
     - name: Build Static OpenSSL
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LDFLAGS: "-static"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
+        LDFLAGS: "-static -Wl,--min-kernel=2.6.16"
       run: |
         cd openssl-1.1.1w
+        # linux-generic32 is safer for ancient syscall patterns than architecture optimizations
         ./Configure linux-generic32 -static --prefix=${{ github.workspace }}/dist --openssldir=${{ github.workspace }}/dist/ssl no-shared no-async no-engine no-tests
         make -j$(nproc)
         make install_sw
@@ -77,8 +79,8 @@ jobs:
     - name: Build Static NCurses
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LDFLAGS: "-static"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
+        LDFLAGS: "-static -Wl,--min-kernel=2.6.16"
       run: |
         cd ncurses-6.4
         ./configure --host=arm-linux-gnueabi \
@@ -95,18 +97,16 @@ jobs:
         make -j$(nproc)
         make install.libs
 
-        # Set up standard library maps
         cd ${{ github.workspace }}/dist/lib
         ln -sf libncursesw.a libncurses.a
 
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw -I${{ github.workspace }}/dist/include/ncurses"
-        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--min-kernel=2.6.16"
       run: |
-        # CRUCIAL CONFIGURATION INJECTION: Override configure probes with explicit linking parameters
         cat << 'EOF' > config.site
         define neomutt_cv_ncursesw_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
         define neomutt_cv_ncurses_libs "-L${{ github.workspace }}/dist/lib -lncursesw -ltinfow -liconv"
@@ -114,7 +114,6 @@ jobs:
         define tinfo_cv_tgetent yes
         EOF
         
-        # Pass the config cache layout straight to configure
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
@@ -127,7 +126,7 @@ jobs:
                     --disable-lmdb \
                     --disable-gdbm
         
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--min-kernel=2.6.16 /' Makefile
         make -j$(nproc)
         arm-linux-gnueabi-strip neomutt
 
@@ -137,16 +136,13 @@ jobs:
         mkdir -p ${{ github.workspace }}/kindle_output/terminfo/x
         mkdir -p ${{ github.workspace }}/kindle_output/extensions/alpine_mail
         
-        # 1. Distribute compiled binary and native terminfo map definitions
         cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
         cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
         
-        # 2. Collect assets straight from your kindle_assets repo path
-        cp kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
-        cp kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
-        cp kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
+        cp .github/kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
+        cp .github/kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
+        cp .github/kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
         
-        # 3. Generate the launcher control definition schema for KUAL dashboard
         cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
         {
           "items": [
