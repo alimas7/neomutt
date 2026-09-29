@@ -16,36 +16,36 @@ jobs:
     - name: Install Build Prerequisites
       run: |
         sudo apt-get update
-        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin
+        sudo apt-get install -y make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin xz-utils
 
-    - name: Fetch and Setup Dedicated Musl-ARM Cross Compiler
+    - name: Fetch and Setup Dedicated Musl-ARM Cross Compiler (Bootlin Mirror)
       run: |
-        PROTO="https://"
+        P="https://"
+        D_BOOTLIN="toolchains.bootlin.com"
         
-        # Pull the official, self-contained musl-cross ARMv7 toolchain package securely
-        DOMAIN_MUSL="musl.cc"
-        curl -Lo armv7l-musl.tgz "${PROTO}${DOMAIN_MUSL}/armv7l-linux-musleabihf-cross.tgz"
+        # Download the official stable Bootlin musl toolchain for ARMv7 architectures
+        curl -Lo arm-musl-cross.tar.xz "${P}${D_BOOTLIN}/downloads/releases/toolchains/armv7-eabihf/tarballs/armv7-eabihf--musl--stable-2024.05-1.tar.xz"
         
         # Unpack the compiled cross-compiler suite directly into the active workspace run path
-        tar -xzf armv7l-musl.tgz -C ${{ github.workspace }}
-        echo "${{ github.workspace }}/armv7l-linux-musleabihf-cross/bin" >> $GITHUB_PATH
+        tar -xf arm-musl-cross.tar.xz -C ${{ github.workspace }}
+        echo "${{ github.workspace }}/armv7-eabihf--musl--stable-2024.05-1/bin" >> $GITHUB_PATH
 
     - name: Download Explicit Dependency Tarballs
       run: |
-        PROTO="https://"
+        P="https://"
         
         # Download ZLib source from fossils server distributions
         DOMAIN_ZLIB="zlib.net"
-        curl -Lo zlib-1.3.1.tar.gz "${PROTO}${DOMAIN_ZLIB}/fossils/zlib-1.3.1.tar.gz"
+        curl -Lo zlib-1.3.1.tar.gz "${P}${DOMAIN_ZLIB}/fossils/zlib-1.3.1.tar.gz"
         
         # Download GNU source archives cleanly via mirrored endpoints
         DOMAIN_GNU="ftp.gnu.org"
-        curl -Lo libiconv-1.17.tar.gz "${PROTO}${DOMAIN_GNU}/pub/gnu/libiconv/libiconv-1.17.tar.gz"
-        curl -Lo ncurses-6.4.tar.gz "${PROTO}${DOMAIN_GNU}/pub/gnu/ncurses/ncurses-6.4.tar.gz"
+        curl -Lo libiconv-1.17.tar.gz "${P}${DOMAIN_GNU}/pub/gnu/libiconv/libiconv-1.17.tar.gz"
+        curl -Lo ncurses-6.4.tar.gz "${P}${DOMAIN_GNU}/pub/gnu/ncurses/ncurses-6.4.tar.gz"
         
         # Download OpenSSL source from core distribution nodes
         DOMAIN_SSL="www.openssl.org"
-        curl -Lo openssl-1.1.1w.tar.gz "${PROTO}${DOMAIN_SSL}/source/openssl-1.1.1w.tar.gz"
+        curl -Lo openssl-1.1.1w.tar.gz "${P}${DOMAIN_SSL}/source/openssl-1.1.1w.tar.gz"
 
     - name: Extract Dependency Source Tree
       run: |
@@ -57,7 +57,7 @@ jobs:
 
     - name: Build Static ZLib (Musl Toolchain)
       env:
-        CC: armv7l-linux-musleabihf-gcc
+        CC: arm-linux-gcc
         CFLAGS: "-static -O2"
       run: |
         cd zlib-1.3.1
@@ -67,18 +67,18 @@ jobs:
 
     - name: Build Static LibIconv (Musl Toolchain)
       env:
-        CC: armv7l-linux-musleabihf-gcc
+        CC: arm-linux-gcc
         CFLAGS: "-static -O2"
         LDFLAGS: "-static"
       run: |
         cd libiconv-1.17
-        ./configure --host=armv7l-linux-musleabihf --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
+        ./configure --host=arm-linux --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
         make -j$(nproc)
         make install
 
     - name: Build Static OpenSSL (Musl Toolchain)
       env:
-        CC: armv7l-linux-musleabihf-gcc
+        CC: arm-linux-gcc
         CFLAGS: "-static -O2"
         LDFLAGS: "-static"
       run: |
@@ -89,12 +89,12 @@ jobs:
 
     - name: Build Static NCurses (Musl Toolchain)
       env:
-        CC: armv7l-linux-musleabihf-gcc
+        CC: arm-linux-gcc
         CFLAGS: "-static -O2"
         LDFLAGS: "-static"
       run: |
         cd ncurses-6.4
-        ./configure --host=armv7l-linux-musleabihf \
+        ./configure --host=arm-linux \
                     --prefix=${{ github.workspace }}/dist \
                     --with-shared=no \
                     --with-normal=yes \
@@ -108,12 +108,12 @@ jobs:
 
     - name: Cross-Compile Standalone NeoMutt Binary (True Musl Static)
       env:
-        CC: armv7l-linux-musleabihf-gcc
+        CC: arm-linux-gcc
         CFLAGS: "-static -O2 -D_GNU_SOURCE"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
-        ./configure --host=armv7l-linux-musleabihf \
+        ./configure --host=arm-linux \
                     --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
@@ -129,7 +129,7 @@ jobs:
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make clean || true
         make -j$(nproc)
-        armv7l-linux-musleabihf-strip neomutt
+        arm-linux-strip neomutt
 
     - name: Structure and Assemble Kindle Release Package
       run: |
