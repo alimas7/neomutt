@@ -41,7 +41,7 @@ jobs:
     - name: Build Static ZLib
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
       run: |
         cd zlib-1.3.1
         ./configure --prefix=${{ github.workspace }}/dist --static
@@ -51,8 +51,8 @@ jobs:
     - name: Build Static LibIconv
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7"
-        LDFLAGS: "-static -Wl,--enable-new-dtags -Wl,--id-eded-minimum-kernel=2.6.31"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd libiconv-1.17
         ./configure --host=arm-linux-gnueabi --prefix=${{ github.workspace }}/dist --enable-static --disable-shared
@@ -62,8 +62,8 @@ jobs:
     - name: Build Static OpenSSL
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7"
-        LDFLAGS: "-static -Wl,--enable-new-dtags -Wl,--id-eded-minimum-kernel=2.6.31"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd openssl-1.1.1w
         ./Configure linux-generic32 -static --prefix=${{ github.workspace }}/dist --openssldir=${{ github.workspace }}/dist/ssl no-shared no-async no-engine no-tests
@@ -73,8 +73,8 @@ jobs:
     - name: Build Static NCurses
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7"
-        LDFLAGS: "-static -Wl,--enable-new-dtags -Wl,--id-eded-minimum-kernel=2.6.31"
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        LDFLAGS: "-static"
       run: |
         cd ncurses-6.4
         ./configure --host=arm-linux-gnueabi \
@@ -92,11 +92,10 @@ jobs:
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
         CC: arm-linux-gnueabi-gcc
-        CC_FOR_TARGET: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7 -I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
-        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--id-eded-minimum-kernel=2.6.31"
+        CFLAGS: "-march=armv7-a -mtune=cortex-a8 -O2 -D__LINUX_ARM_ARCH__=7 -I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
+        # Pure cross-linker fallback strategy matching native 2.6.31 kernel hooks cleanly
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib -Wl,--abi-version=2.6.31"
       run: |
-        # Explicit configuration parameters forcing dependency targets natively
         ./configure --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
@@ -109,8 +108,8 @@ jobs:
                     --disable-lmdb \
                     --disable-gdbm
         
-        # Enforce static compilation requirements back inside generated Makefile templates
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--id-eded-minimum-kernel=2.6.31 /' Makefile
+        # Override Makefile generation templates to ensure strict kernel constraints link properly
+        sed -i 's/^LDFLAGS = /LDFLAGS = -static -Wl,--abi-version=2.6.31 /' Makefile
         make -j$(nproc)
         arm-linux-gnueabi-strip neomutt
 
