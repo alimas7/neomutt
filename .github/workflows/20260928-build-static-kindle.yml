@@ -101,7 +101,9 @@ jobs:
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
-        ./configure --prefix=${{ github.workspace }}/dist \
+        # CRUCIAL FIX: --host=arm-linux-gnueabi stops autosetup from executing test binaries locally
+        ./configure --host=arm-linux-gnueabi \
+                    --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
                     --disable-doc \
                     --ssl \
