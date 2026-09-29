@@ -89,16 +89,23 @@ jobs:
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LDFLAGS: "-static"
+        # Direct the compiler to look in your custom target workspace directories
+        CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
+        LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
         ./configure --prefix=${{ github.workspace }}/dist \
-                    --disable-nls --disable-doc \
-                    --ssl --with-ssl=${{ github.workspace }}/dist \
-                    --with-curses=${{ github.workspace }}/dist \
+                    --disable-nls \
+                    --disable-doc \
+                    --ssl \
+                    --with-ssl=${{ github.workspace }}/dist \
                     --with-ui=ncurses \
-                    --disable-idn2 --disable-notmuch --disable-sqlite \
-                    --disable-lmdb --disable-gdbm
+                    --disable-idn2 \
+                    --disable-notmuch \
+                    --disable-sqlite \
+                    --disable-lmdb \
+                    --disable-gdbm
         
+        # Enforce static building metrics into the generated Makefile
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make -j$(nproc)
 
