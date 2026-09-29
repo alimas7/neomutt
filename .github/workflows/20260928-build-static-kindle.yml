@@ -145,9 +145,9 @@ jobs:
         cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
         cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
         
-        cp .github/kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
-        cp .github/kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
-        cp .github/kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
+        cp kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
+        cp kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
+        cp kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
         
         cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
         {
