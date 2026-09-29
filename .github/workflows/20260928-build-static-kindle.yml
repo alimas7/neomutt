@@ -30,9 +30,8 @@ jobs:
         curl -Lo libiconv-1.17.tar.gz "${PROTO}${DOMAIN_GNU}/pub/gnu/libiconv/libiconv-1.17.tar.gz"
         curl -Lo ncurses-6.4.tar.gz "${PROTO}${DOMAIN_GNU}/pub/gnu/ncurses/ncurses-6.4.tar.gz"
         
-        # Pull OpenSSL securely from source distribution master lists
-        DOMAIN_SSL="www.openssl.org"
-        curl -Lo openssl-1.1.1w.tar.gz "${PROTO}${DOMAIN_SSL}/source/openssl-1.1.1w.tar.gz"
+        # RESTORED: Direct, untampered link that compiled successfully earlier
+        curl -Lo openssl-1.1.1w.tar.gz "https://openssl.org"
 
     - name: Extract Dependency Source Tree
       run: |
@@ -45,7 +44,6 @@ jobs:
     - name: Build Static ZLib
       env:
         CC: arm-linux-gnueabi-gcc
-        # CRUCIAL EMBEDDED KERNEL FIX: Force linker to stamp backward compatibility markers down to 2.6.16
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -Wl,--min-kernel=2.6.16"
       run: |
         cd zlib-1.3.1
@@ -71,7 +69,6 @@ jobs:
         LDFLAGS: "-static -Wl,--min-kernel=2.6.16"
       run: |
         cd openssl-1.1.1w
-        # linux-generic32 is safer for ancient syscall patterns than architecture optimizations
         ./Configure linux-generic32 -static --prefix=${{ github.workspace }}/dist --openssldir=${{ github.workspace }}/dist/ssl no-shared no-async no-engine no-tests
         make -j$(nproc)
         make install_sw
@@ -139,9 +136,9 @@ jobs:
         cp neomutt ${{ github.workspace }}/kindle_output/bin/neomutt
         cp /lib/terminfo/x/xterm ${{ github.workspace }}/kindle_output/terminfo/x/xterm
         
-        cp .github/kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
-        cp .github/kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
-        cp .github/kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
+        cp kindle_assets/.muttrc ${{ github.workspace }}/kindle_output/.muttrc
+        cp kindle_assets/run_mail.sh ${{ github.workspace }}/kindle_output/extensions/alpine_mail/run_mail.sh
+        cp kindle_assets/config.xml ${{ github.workspace }}/kindle_output/extensions/alpine_mail/config.xml
         
         cat << 'EOF' > ${{ github.workspace }}/kindle_output/extensions/alpine_mail/menu.json
         {
