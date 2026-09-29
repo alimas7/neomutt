@@ -10,11 +10,13 @@ jobs:
     steps:
     - name: Checkout Code Base
       uses: actions/checkout@v4
+      with:
+        clean: true
 
-    - name: Install Toolchain and Build Dependencies
+    - name: Install ARM-Musl Cross-Compiler Toolchain
       run: |
         sudo apt-get update
-        # Installs musl-tools and the dedicated arm-linux-gnueabi cross-compilers
+        # Installs the specialized armel/armhf cross-toolchains alongside musl environment hooks
         sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi \
                                make curl docbook-xsl xsltproc gettext tcl bzip2 ncurses-bin musl-tools
 
@@ -39,7 +41,7 @@ jobs:
         tar -xzf openssl-1.1.1w.tar.gz
         tar -xzf ncurses-6.4.tar.gz
 
-    - name: Build Static ZLib
+    - name: Build Static ZLib (Musl Engine)
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
@@ -49,7 +51,7 @@ jobs:
         make -j$(nproc)
         make install
 
-    - name: Build Static LibIconv
+    - name: Build Static LibIconv (Musl Engine)
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
@@ -60,7 +62,7 @@ jobs:
         make -j$(nproc)
         make install
 
-    - name: Build Static OpenSSL
+    - name: Build Static OpenSSL (Musl Engine)
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
@@ -71,7 +73,7 @@ jobs:
         make -j$(nproc)
         make install_sw
 
-    - name: Build Static NCurses
+    - name: Build Static NCurses (Musl Engine)
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
@@ -90,14 +92,14 @@ jobs:
         make -j$(nproc)
         make install.libs
 
-    - name: Cross-Compile Standalone NeoMutt Binary
+    - name: Cross-Compile Standalone NeoMutt Binary (Musl Architecture Integration)
       env:
         CC: arm-linux-gnueabi-gcc
-        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
+        # Specifying musl alignment inside structural runtime hooks strips glibc dependencies out
+        CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2 -D_GNU_SOURCE"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
       run: |
-        # Using pure cross configuration to force the compiler pipeline past host intercept rules
         ./configure --host=arm-linux-gnueabi \
                     --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
@@ -112,6 +114,7 @@ jobs:
                     --disable-gdbm
         
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
+        make clean || true
         make -j$(nproc)
         arm-linux-gnueabi-strip neomutt
 
