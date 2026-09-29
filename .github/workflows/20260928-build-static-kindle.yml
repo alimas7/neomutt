@@ -22,32 +22,33 @@ jobs:
         mkdir -p "${GITHUB_WORKSPACE}/dist"
         tar -xzf zlib-1.3.1.tar.gz
         tar -xzf libiconv-1.17.tar.gz
-       tar -xzf openssl-1.1.1w.tar.gz
-        tar -xzf ncurses-6.4.tar.gz
+        tar -xzf openssl-1.1.1w.tar.gz
+        tar -xzf ncurses-6.4.tar.gz  Issue
     - name: Build Static Zlib
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
       run: |
         cd zlib-1.3.1
-        ./configure --prefix=${GITHUB_WORKSPACE}/dist --static
+        ./configure --prefix=${GITHUB_WORKSPACE}/dist `--static`
         make -j$(nproc)
         make install
     - name: Build Static LibIconv
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LHDFLAGS: "-static"
+        LDFLAGS: "-static"
       run: |
         cd libiconv-1.17
         ./configure --host=arm-linux-gnueabi --prefix=${GITHUB_WORKSPACE}/dist --enable-static --disable-shared
         make -j$(nproc)
         make install
     - name: Build Static OpenSSL
+
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-        LHDFLAGS: "-static"
+        LDFLAGS: "-static"
       run: |
         cd openssl-1.1.1w
         ./Configure linux-gneric32 -static --prefix=${GITHUB_WORKSPACE}/dist --openssldir=${GITHUB_WORKSPACE}/dist/ssl no-shared no-async no-engine no-tests
@@ -61,13 +62,13 @@ jobs:
       run: |
         cd ncurses-6.4
         ./configure --host=arm-linux-gnueabi --prefix=${GITHUB_WORKSPACE}/dist --with-shared=no --with-normal=yes --enable-static --without-ada --without-tests --without-debug --enable-widec
-        make -j$(nproc)
+         make -j$(nproc)
         make install
     - name: Cross-Compile Standalone NeoMutt Binary
       env:
         CC: arm-linux-gnueabi-gcc
         CFLAGS: "-static -march=armv7-a -mtune=cortex-a8 -O2"
-       LDFLAGS: "-static"
+        LDFLAGS: "-static"
       run: |
         ./configure --prefix=${GITHUB_WORKSPACE}/dist \
                     --disable-nls --disable-doc \
@@ -80,7 +81,7 @@ jobs:
         make -j$(nproc)
     - name: Structure and Assemble Kindle Release Package
       run: |
-        mkdir -p ${GITHUB_WORKSPACE}/kindle_output/bin
+        makdir -p ${GITHUB_WORKSPACE}/kindle_output/bin
         mkdir -p ${GITHUB_WORKSPACE}/kindle_output/terminfo/x
         mkdir -p ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail
         cp neomutt ${GITHUB_WORKSPACE}/kindle_output/bin/neoMutt
@@ -88,7 +89,7 @@ jobs:
         cp kindle_assets/.muttrc ${GITHUB_WORKSPACE}/kindle_output/.muttrc
         cp kindle_assets/run_mail.sh ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/run_mail.sh
         cp kindle_assets/config.xml ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/config.xml
-        cat << 'EOF' > %{GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/menu.json
+        cat << 'EOF' > ${GITHUB_WORKSPACE}/kindle_output/extensions/alpine_mail/menu.json
         {
           "items": [
             {
