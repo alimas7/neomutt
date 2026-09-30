@@ -137,6 +137,15 @@ jobs:
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
         LIBS: "-lgdbm"
       run: |
+        test -f "${{ github.workspace }}/dist/include/gdbm.h"
+        test -f "${{ github.workspace }}/dist/lib/libgdbm.a"
+
+        echo "GDBM headers:"
+        ls -l "${{ github.workspace }}/dist/include/gdbm.h"
+
+        echo "GDBM static library:"
+        ls -l "${{ github.workspace }}/dist/lib/libgdbm.a"
+
         ./configure --host=arm-linux \
                     --prefix=${{ github.workspace }}/dist \
                     --disable-nls \
@@ -148,9 +157,9 @@ jobs:
                     --disable-notmuch \
                     --disable-sqlite \
                     --disable-lmdb \
-                    --gdbm=${{ github.workspace }}/dist
-        
-        sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
+                    --gdbm \
+                    --with-gdbm=${{ github.workspace }}/dist
+
         make clean || true
         make -j$(nproc)
         arm-linux-strip neomutt
