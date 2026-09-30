@@ -47,6 +47,9 @@ jobs:
         DOMAIN_SSL="www.openssl.org"
         curl -Lo openssl-1.1.1w.tar.gz "${P}${DOMAIN_SSL}/source/openssl-1.1.1w.tar.gz"
 
+        # GNU GDBM: header-cache backend for NeoMutt
+        curl -Lo gdbm-1.24.tar.gz "${P}${DOMAIN_GNU}/pub/gnu/gdbm/gdbm-1.24.tar.gz"
+
     - name: Extract Dependency Source Tree
       run: |
         mkdir -p "${{ github.workspace }}/dist"
@@ -54,6 +57,7 @@ jobs:
         tar -xzf libiconv-1.17.tar.gz
         tar -xzf openssl-1.1.1w.tar.gz
         tar -xzf ncurses-6.4.tar.gz
+        tar -xzf gdbm-1.24.tar.gz
 
     - name: Build Static ZLib (Musl Toolchain)
       env:
@@ -106,12 +110,32 @@ jobs:
         make -j$(nproc)
         make install.libs
 
+    - name: Build Static GDBM (Musl Toolchain)
+      env:
+        CC: arm-linux-gcc
+        AR: arm-linux-ar
+        RANLIB: arm-linux-ranlib
+        CFLAGS: "-static -O2 -fPIC"
+        LDFLAGS: "-static"
+      run: |
+        cd gdbm-1.24
+        ./configure \
+          --host=arm-linux \
+          --build="$(gcc -dumpmachine)" \
+          --prefix="${{ github.workspace }}/dist" \
+          --enable-static \
+          --disable-shared \
+          --disable-libgdbm-compat
+        make -j"$(nproc)"
+        make install
+
     - name: Cross-Compile Standalone NeoMutt Binary (True Musl Static)
       env:
         CC: arm-linux-gcc
         CFLAGS: "-static -O2 -D_GNU_SOURCE"
         CPPFLAGS: "-I${{ github.workspace }}/dist/include -I${{ github.workspace }}/dist/include/ncursesw"
         LDFLAGS: "-static -L${{ github.workspace }}/dist/lib"
+        LIBS: "-lgdbm"
       run: |
         ./configure --host=arm-linux \
                     --prefix=${{ github.workspace }}/dist \
@@ -124,12 +148,23 @@ jobs:
                     --disable-notmuch \
                     --disable-sqlite \
                     --disable-lmdb \
-                    --disable-gdbm
+                    --gdbm=${{ github.workspace }}/dist
         
         sed -i 's/^LDFLAGS = /LDFLAGS = -static /' Makefile
         make clean || true
         make -j$(nproc)
         arm-linux-strip neomutt
+
+    - name: Verify NeoMutt Header Cache Support
+      run: |
+        echo "Binary details:"
+        file neomutt
+
+        echo "Checking configured hcache support:"
+        strings neomutt | grep -i -E 'header_cache|gdbm|hcache' | head -50 || true
+
+        echo "Static-link check:"
+        arm-linux-readelf -d neomutt | grep NEEDED && exit 1 || true
 
     - name: Structure and Assemble Kindle Release Package
       run: |
